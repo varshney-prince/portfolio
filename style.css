@@ -465,6 +465,7 @@ body {
 /* Works Section */
 .works {
     padding: 100px 0;
+    display: none;
 }
 
 .works-grid {

@@ -1,3 +1,85 @@
+// Loader with percentage
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('loading');
+    const loader = document.getElementById('loader');
+    const loaderPercentEl = document.getElementById('loaderPercent');
+    if (!loader || !loaderPercentEl) return;
+
+    let progress = 0;
+    let finalized = false;
+    const setProgress = (val) => {
+        progress = Math.max(0, Math.min(100, val));
+        loaderPercentEl.textContent = progress + '%';
+    };
+
+    const finalizeLoader = () => {
+        if (finalized) return;
+        finalized = true;
+        setProgress(100);
+        setTimeout(() => {
+            loader.classList.add('hidden');
+            document.body.classList.remove('loading');
+        }, 200);
+    };
+
+    // Simulate progress up to 90% (disabled)
+    let simulated = 0;
+    let simInterval = null;
+    // simInterval = setInterval(() => {
+    //     if (progress >= 90) return;
+    //     simulated += Math.random() * 3 + 1; // 1-4%
+    //     setProgress(Math.min(90, Math.floor(simulated)));
+    // }, 200);
+
+    // Use image loading to inform progress
+    const images = Array.from(document.images);
+    let loadedCount = 0;
+    const totalCount = images.length;
+    const MAX_LOAD_MS = 6000; // safety timeout
+
+    const onAssetDone = () => {
+        loadedCount++;
+        if (totalCount > 0) {
+            const imgProgress = Math.floor((loadedCount / totalCount) * 100);
+            setProgress(Math.max(progress, imgProgress));
+            if (loadedCount >= totalCount) {
+                finalizeLoader();
+            }
+        }
+    };
+
+    if (totalCount === 0) {
+        // No images to wait for; finalize immediately
+        setProgress(100);
+        finalizeLoader();
+    } else {
+        images.forEach(img => {
+            if (img.complete) {
+                onAssetDone();
+            } else {
+                const done = () => {
+                    img.removeEventListener('load', done);
+                    img.removeEventListener('error', done);
+                    onAssetDone();
+                };
+                img.addEventListener('load', done);
+                img.addEventListener('error', done);
+            }
+        });
+    }
+
+    // Safety timeout: finalize even if some resources stall
+    setTimeout(() => {
+        finalizeLoader();
+    }, MAX_LOAD_MS);
+
+    // Finalize on full window load (fallback)
+    window.addEventListener('load', () => {
+        if (simInterval) clearInterval(simInterval);
+        finalizeLoader();
+    });
+});
+
 // Smooth scrolling for navigation links
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
@@ -141,9 +223,33 @@ window.addEventListener('scroll', () => {
 // Mobile navigation toggle
 const navToggle = document.getElementById('navToggle');
 const nav = document.querySelector('.nav');
+const navMenu = document.querySelector('.nav-menu');
 
 navToggle.addEventListener('click', () => {
     nav.classList.toggle('nav-open');
+});
+
+// Close mobile menu when a nav link is clicked
+if (navMenu) {
+    navMenu.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            nav.classList.remove('nav-open');
+        });
+    });
+}
+
+// Close menu on resize back to desktop
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) {
+        nav.classList.remove('nav-open');
+    }
+});
+
+// Support Escape key to close mobile menu
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        nav.classList.remove('nav-open');
+    }
 });
 
 // Add hover effect to social links

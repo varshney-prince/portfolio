@@ -1,0 +1,9 @@
+
+[
+    {
+        "title": "Plant Health Bot",
+        "description": "A web-based chatbot for identifying and diagnosing plant diseases.",
+        "icon": "fas fa-leaf",
+        "link": "https://plant-health-bot.vercel.app/"
+    }
+]

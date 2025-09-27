@@ -533,12 +533,12 @@ body {
 /* Works Section */
 .works {
     padding: 100px 0;
-    display: none;
 }
 
 .works-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
     gap: 30px;
     margin-top: 60px;
 }

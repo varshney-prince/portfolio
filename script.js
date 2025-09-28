@@ -70,6 +70,52 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Toast helper
+function showToast(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return alert(message);
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'polite');
+    toast.innerHTML = message;
+
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close-btn';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', () => {
+        toast.style.animation = 'toast-out 200ms ease forwards';
+        setTimeout(() => toast.remove(), 220);
+    });
+    toast.appendChild(closeBtn);
+
+    container.appendChild(toast);
+
+    // Auto-dismiss
+    const timer = setTimeout(() => {
+        toast.style.animation = 'toast-out 200ms ease forwards';
+        setTimeout(() => toast.remove(), 220);
+    }, duration);
+
+    // Pause auto-dismiss on hover
+    let remaining = duration;
+    let start = Date.now();
+    toast.addEventListener('mouseenter', () => {
+        clearTimeout(timer);
+        remaining -= Date.now() - start;
+    });
+    toast.addEventListener('mouseleave', () => {
+        start = Date.now();
+        setTimeout(() => {
+            toast.style.animation = 'toast-out 200ms ease forwards';
+            setTimeout(() => toast.remove(), 220);
+        }, Math.max(300, remaining));
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const observerOptions = {
         threshold: 0.1,
@@ -164,36 +210,64 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// Contact form handling
-document.querySelector('.contact-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Get form data
-    const formData = new FormData(this);
-    const name = this.querySelector('input[type="text"]').value;
-    const email = this.querySelector('input[type="email"]').value;
-    const message = this.querySelector('textarea').value;
-    
-    // Simple validation
-    if (!name || !email || !message) {
-        alert('Please fill in all fields');
-        return;
+// Contact form handling -> JSON POST with no-cors (name, email, message only)
+(function setupContactSubmit() {
+    const form = document.querySelector('.contact-form');
+    if (!form) return;
+
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwvGwO-Gf9rTG0Z9b6o-aRPOTwYRpqf7v6o71bOSXDDu87qGGzw9emxv2m2ETDHF8wMFw/exec';
+
+    function validate(f) {
+        const name = f.name?.value?.trim();
+        const email = f.email?.value?.trim();
+        const message = f.message?.value?.trim();
+        if (!name || !email || !message) {
+            alert('Please enter your name, email and message.');
+            return false;
+        }
+        return true;
     }
-    
-    // Simulate form submission
-    const submitButton = this.querySelector('.submit-button');
-    const originalText = submitButton.textContent;
-    
-    submitButton.textContent = 'Sending...';
-    submitButton.disabled = true;
-    
-    setTimeout(() => {
-        alert('Thank you for your message! I\'ll get back to you soon.');
-        this.reset();
-        submitButton.textContent = originalText;
-        submitButton.disabled = false;
-    }, 2000);
-});
+
+    form.addEventListener('submit', async function handleSubmit(e) {
+        e.preventDefault();
+        const f = e.target;
+        if (!validate(f)) return;
+
+        // Prepare values
+        const name = f.name.value.trim();
+        const email = f.email.value.trim();
+        const message = f.message.value.trim();
+
+        // Optional: show a sending toast
+        showToast('Sending your message…', 'info', 1500);
+
+        // Disable submit button to prevent double submit
+        const submitBtn = f.querySelector('button[type="submit"]');
+        const prevDisabled = submitBtn?.disabled;
+        if (submitBtn) submitBtn.disabled = true;
+
+        const newUserData = { name, email, message };
+
+        try {
+            await fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Important for Apps Script POST requests from a browser
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newUserData),
+            });
+            // With 'no-cors' the response is opaque; assume success if no error thrown.
+            showToast('Thanks! Your message has been sent successfully. I\'ll get back to you soon.', 'success', 3500);
+            f.reset();
+        } catch (error) {
+            console.error('Error sending data:', error);
+            showToast('Sorry, we couldn\'t send your message right now. Please try again later or email me at <strong>varshneyprince20000@gmail.com</strong>.', 'error', 5000);
+        } finally {
+            if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
+        }
+    });
+})();
 
 // Add typing effect to hero title
 function typeWriter(element, text, speed = 100) {
